@@ -1,27 +1,3 @@
---[[
-     _              _             _ _
-    | |  _  _ _ __ (_)_ _  ___ __(_) |_ _  _
-    | |_| || | '  \| | ' \/ _ (_-< |  _| || |
-    |____\_,_|_|_|_|_|_||_\___/__/_|\__|\_, |
-                                        |__/
-	Source:
-        https://raw.githubusercontent.com/icuck/GenesisStudioLibraries/main/Elerium%20Interface%20Library.lua
-
-	Version:
-        0.0.1
-
-	Date:
-        October 19th, 2020
-
-	Author:
-        OminousVibes @ v3rmillion.net / OminousVibes#1234 @ discord.gg
-
-    Credits:
-        (None Yet)
-
-]]
-
-
 
 -- [ Initialize ] --
 -- Destroy Previous UI's --
@@ -1121,19 +1097,39 @@ function Divine.new(Name, Header, Icon)
 						BackgroundTransparency = 0.25,
 						BorderSizePixel = 0,
 						Position = UDim2.new(0.5, 0, 1, 0),
-						Size = UDim2.new(1.12, 0, 0, 1)
+						Size = UDim2.new(1, 0, 0, 1)
 					}, {Utility.new("UIGradient", {Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.25, 0.1), NumberSequenceKeypoint.new(1, 1)}})}),
 
 					Utility.new("UIPadding", {PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 20)})
 				}),
-
+				Utility.new("ScrollingFrame", {
+					Name = "TabContainer",
+					BackgroundTransparency = 1,
+					Position = UDim2.new(0, 0, 0, 75),
+					Size = UDim2.new(1, -10, 0.8, -75), -- Create 3px space for scrollbar
+					ScrollBarThickness = 6, -- Optimal visibility
+					ScrollBarImageColor3 = Color3.fromRGB(47, 47, 47), -- Dark gray
+					ScrollBarImageTransparency = 0, -- Slight transparency
+					ScrollingDirection = Enum.ScrollingDirection.Y,
+					ClipsDescendants = true,
+					BorderSizePixel = 0
+				}, {
+					Utility.new("UIListLayout", {
+						SortOrder = Enum.SortOrder.LayoutOrder,
+						Padding = UDim.new(0, 2)
+					}),
+					Utility.new("UIPadding", {
+						PaddingLeft = UDim.new(0, 5),
+						PaddingRight = UDim.new(0, 9)
+					})
+				}),
 				-- Ornaments
 				Utility.new("Folder", {Name = "Ornaments"}, {
 					Utility.new("Frame", {
 						Name = "Shadow",
 						BackgroundTransparency = 1,
-						Position = UDim2.new(0, 5, 0, 0),
-						Size = UDim2.new(1, 0, 1, 0),
+						Position = UDim2.new(0, 0, 0, 0),
+						Size = UDim2.new(1, -5, 1, 0),
 						ZIndex = 0
 					}, {
 						Utility.new("ImageLabel", {
@@ -1261,12 +1257,13 @@ function Divine.new(Name, Header, Icon)
 
 		local TabButton = Utility.new("Frame", {
 			Name = "Button",
-			Parent = Main.SideBar,
+			Parent = Main.SideBar.TabContainer,
 			BackgroundColor3 = Divine.ColorScheme.Primary,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Size = UDim2.new(1, 0, 0, 40)
 		}, {
+
 			-- Add a UICorner here
 			Utility.new("UICorner", {
 				CornerRadius = UDim.new(0, 6) -- Adjust "6" for roundness
@@ -1296,6 +1293,22 @@ function Divine.new(Name, Header, Icon)
 			})
 
 		})
+		TabButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			Main.SideBar.TabContainer.CanvasSize = UDim2.new(
+				0, 0, 0.1, Main.SideBar.TabContainer.UIListLayout.AbsoluteContentSize.Y
+			)
+		end)
+
+		local function updateScroll()
+			local contentSize = Main.SideBar.TabContainer.UIListLayout.AbsoluteContentSize.Y
+			Main.SideBar.TabContainer.CanvasSize = UDim2.new(0, 0, 0, contentSize + 10) -- +10px buffer
+		end
+
+		-- Update when:
+		Main.SideBar.TabContainer.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateScroll)
+		Main.SideBar.TabContainer.ChildAdded:Connect(updateScroll)
+		Main.SideBar.TabContainer.ChildRemoved:Connect(updateScroll)
+		updateScroll() -- Initial update
 
 		-- Scripts --
 		TabFrame.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
