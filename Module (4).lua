@@ -1,4 +1,3 @@
-
 -- [ Initialize ] --
 -- Destroy Previous UI's --
 if _G.Divine_Loaded and _G.Divine then
@@ -664,6 +663,10 @@ local function CreateOptions(Frame)
 			List = List or {};
 			Function = Callback or function(Value) end;
 			Placeholder = Placeholder and tostring(Placeholder) or "Select...";
+			_options = {},
+			_container = nil,
+			_parentFrame = Frame,
+			_isExpanded = false
 		}
 
 		local Container = Utility.new("ImageButton", {
@@ -738,6 +741,7 @@ local function CreateOptions(Frame)
 					Name = "Label",
 					Text = OptionName,
 					-- ... text properties ...
+					_searchable = true
 				}),
 				Utility.new("Frame", {
 					Name = "SwitchContainer",
@@ -747,6 +751,7 @@ local function CreateOptions(Frame)
 					BackgroundTransparency = 1
 				})
 			})
+
 		end -- ✅ Close AddOption function
 
 		-- [TOGGLE LOGIC] --
@@ -980,7 +985,6 @@ local function CreateOptions(Frame)
 			end
 		})
 	end
-
 	return Options
 end
 
@@ -1106,7 +1110,7 @@ function Divine.new(Name, Header, Icon)
 					Name = "TabContainer",
 					BackgroundTransparency = 1,
 					Position = UDim2.new(0, 0, 0, 75),
-					Size = UDim2.new(1, -10, 0.8, -75), -- Create 3px space for scrollbar
+					Size = UDim2.new(1, -10, 0.8, -50), -- Create 3px space for scrollbar
 					ScrollBarThickness = 6, -- Optimal visibility
 					ScrollBarImageColor3 = Color3.fromRGB(47, 47, 47), -- Dark gray
 					ScrollBarImageTransparency = 0, -- Slight transparency
@@ -1121,6 +1125,55 @@ function Divine.new(Name, Header, Icon)
 					Utility.new("UIPadding", {
 						PaddingLeft = UDim.new(0, 5),
 						PaddingRight = UDim.new(0, 9)
+					})
+				}),
+				Utility.new("Frame", {
+					Name = "SearchBarContainer",
+					BackgroundTransparency = 1,
+					Size = UDim2.new(1, -10, 0, 45),
+					AnchorPoint = Vector2.new(0, 1), -- Critical anchor point
+					Position = UDim2.new(0, 0, 1, -5) -- 5px from bottom
+				}, {
+					Utility.new("Frame", {
+						Name = "SearchBar",
+						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+						BackgroundTransparency = 0,
+						BorderSizePixel = 0,
+						Size = UDim2.new(1, 0, 0, 40),
+						Position = UDim2.new(0, 0, 0, 0)
+					}, {
+						-- Magenta Border Stroke
+						Utility.new("UIStroke", {
+							Color = Divine.ColorScheme.Primary,
+							Thickness = 2,
+							Transparency = 0.3
+						}),
+						Utility.new("UICorner", {CornerRadius = UDim.new(0, 6)}),
+						Utility.new("ImageLabel", {
+							Name = "SearchIcon",
+							AnchorPoint = Vector2.new(0, 0.5),
+							BackgroundTransparency = 1,
+							Position = UDim2.new(0, 15, 0.5, 0),
+							Size = UDim2.new(0, 20, 0, 20),
+							Image = "rbxassetid://126152496049439",
+							ImageColor3 = Color3.fromRGB(255, 255, 255),
+							ImageTransparency = 0.3
+						}),
+						Utility.new("TextBox", {
+							Name = "SearchBox",
+							AnchorPoint = Vector2.new(0, 0.5),
+							BackgroundTransparency = 1,
+							Position = UDim2.new(0, 45, 0.5, 0),
+							Size = UDim2.new(1, -60, 1, 0),
+							Font = Enum.Font.Gotham,
+							PlaceholderText = "Search Features...",
+
+							PlaceholderColor3 = Color3.fromRGB(255, 255, 255),
+							TextColor3 = Color3.fromRGB(255, 255, 255),
+							TextSize = 14,
+							TextTransparency = 0.3,
+							TextXAlignment = Enum.TextXAlignment.Left
+						})
 					})
 				}),
 				-- Ornaments
@@ -1202,7 +1255,6 @@ function Divine.new(Name, Header, Icon)
 		Icon = tostring(Icon) or "4370345701",
 		Toggled = true -- Start as visible
 	}
-
 
 	-- Initialize WindowInfo with default position
 	local WindowInfo = {
@@ -1298,6 +1350,7 @@ function Divine.new(Name, Header, Icon)
 				0, 0, 0.1, Main.SideBar.TabContainer.UIListLayout.AbsoluteContentSize.Y
 			)
 		end)
+
 
 		local function updateScroll()
 			local contentSize = Main.SideBar.TabContainer.UIListLayout.AbsoluteContentSize.Y
@@ -1818,5 +1871,59 @@ Services.UserInputService.InputEnded:Connect(function(input)
 		-- Process selected objects here
 	end
 end)
+-- Global search controller
+local SearchSystem = {
+	allDropdowns = {}
+}
 
+function Divine:SearchDropdowns(searchText)
+	local cleanText = searchText:lower()
+
+	-- Clear previous highlights
+	for _, dropdown in ipairs(SearchSystem.allDropdowns) do
+		for _, option in ipairs(dropdown._options) do
+			option.frame.Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		end
+	end
+
+	-- Search through all dropdowns
+	for _, dropdown in ipairs(SearchSystem.allDropdowns) do
+		-- Auto-expand parent containers
+		if dropdown._parentFrame and dropdown._parentFrame.ClassName == "ScrollingFrame" then
+			local parentContainer = dropdown._parentFrame.Parent
+			if parentContainer:FindFirstChild("Arrow") then
+				-- Expand folders automatically
+				parentContainer.Arrow.Rotation = 180
+				parentContainer.Info.Size = UDim2.new(1, 0, 0, parentContainer.Info.UIListLayout.AbsoluteContentSize.Y + 5)
+			end
+		end
+
+		-- Highlight matches
+		for _, option in ipairs(dropdown._options) do
+			if option.text:find(cleanText) then
+				option.frame.Label.TextColor3 = Divine.ColorScheme.Primary
+				-- Auto-scroll to match
+				local parentScroller = dropdown._container.Parent
+				if parentScroller:IsA("ScrollingFrame") then
+					parentScroller.CanvasPosition = Vector2.new(0, option.frame.AbsolutePosition.Y - parentScroller.AbsolutePosition.Y)
+				end
+			end
+		end
+	end
+end
+
+-- Track all dropdowns when created
+local originalCreateOptions = CreateOptions
+function CreateOptions(Frame)
+	local Options = originalCreateOptions(Frame)
+
+	local originalDropdown = Options.Dropdown
+	function Options.Dropdown(...)
+		local dropdown = originalDropdown(...)
+		table.insert(SearchSystem.allDropdowns, dropdown)
+		return dropdown
+	end
+
+	return Options
+end
 return Divine
