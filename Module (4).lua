@@ -1,13 +1,12 @@
 -- [ Initialize ] --
 -- Destroy Previous UI's --
-if _G.DivineInstance then
-    pcall(function()
-        _G.DivineInstance:Destroy() -- Safely destroy existing GUI
-    end)
+if _G.Divine_Loaded and _G.Divine then
+	_G.Divine:Destroy()
 end
 
--- Set Global Reference --
-_G.DivineInstance = Divine.ScreenGui -- Track the ScreenGui directly
+-- Set Globals --
+_G.Divine_Loaded = true
+_G.Divine = nil
 
 -- [ Yield ] --
 if not game:IsLoaded() then
