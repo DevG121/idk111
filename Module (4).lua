@@ -1,31 +1,13 @@
 -- [ Initialize ] --
--- Destroy ALL previous instances --
-for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-    if gui.Name == "Divine" then
-        gui:Destroy() -- Bruteforce cleanup
-    end
+-- Destroy Previous UI's --
+if _G.DivineInstance then
+    pcall(function()
+        _G.DivineInstance:Destroy() -- Safely destroy existing GUI
+    end)
 end
 
--- Track new instance with metadata --
-local Divine = {
-    ScreenGui = Utility.new("ScreenGui", {
-        Name = "Divine",
-        Parent = Services.RunService:IsStudio() and LocalPlayer:FindFirstChildOfClass("PlayerGui") or Services.CoreGui,
-        -- ... rest of properties ...
-    }),
-    _Destroyed = false -- Track state
-}
-
--- Add self-destruct method --
-function Divine:Destroy()
-    if not self._Destroyed then
-        self.ScreenGui:Destroy()
-        self._Destroyed = true
-    end
-end
-
--- Global tracking --
-_G.LastDivineInstance = Divine
+-- Set Global Reference --
+_G.DivineInstance = Divine.ScreenGui -- Track the ScreenGui directly
 
 -- [ Yield ] --
 if not game:IsLoaded() then
