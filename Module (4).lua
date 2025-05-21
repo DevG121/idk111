@@ -6,7 +6,7 @@ end
 
 -- Set Globals --
 _G.Divine_Loaded = true
-_G.Divine = nil
+_G.Divine = Divine
 
 -- [ Yield ] --
 if not game:IsLoaded() then
